@@ -935,6 +935,7 @@ gst_v4l2src_create (GstPushSrc * src, GstBuffer ** buf)
   GstClockTime delay;
   GstMessage *qos_msg;
   gboolean half_frame;
+  GstMessage *msg = NULL;
 
   do {
     GstV4l2BufferPool *pool = GST_V4L2_BUFFER_POOL_CAST (obj->pool);
@@ -975,6 +976,20 @@ gst_v4l2src_create (GstPushSrc * src, GstBuffer ** buf)
 
   timestamp = GST_BUFFER_TIMESTAMP (*buf);
   duration = obj->duration;
+
+  msg = gst_message_new_element(
+    GST_OBJECT_CAST(v4l2src),
+    gst_structure_new (
+      "timestamp_info_message",
+      "timestamp", G_TYPE_UINT64, timestamp,
+      "first_timestamp", G_TYPE_BOOLEAN, TRUE,
+      NULL
+    )
+  );
+
+  if (gst_element_post_message (GST_ELEMENT(v4l2src), msg) == FALSE) {
+		GST_WARNING ("This element has no bus, therefore no message sent!");
+	}
 
   /* timestamps, LOCK to get clock and base time. */
   /* FIXME: element clock and base_time is rarely changing */
